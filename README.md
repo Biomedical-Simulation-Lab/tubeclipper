@@ -9,3 +9,9 @@ Naive clip with origin and normal:
 
 TubeClipper clip with origin and normal:
 ![TubeClipper with origin and normal](https://github.com/Biomedical-Simulation-Lab/tubeclipper/blob/master/imgs/after.png)
+
+Requirements:
+- numpy 
+- pyvista 
+- scipy 
+- networkx 
