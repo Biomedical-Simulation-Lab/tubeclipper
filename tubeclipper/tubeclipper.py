@@ -32,78 +32,87 @@ class TubeClipper():
 
         naive_clip = mesh.clip(normal, origin, return_clipped=True)
         
-        sections = naive_clip[0].split_bodies()
-        id = 0
-        for body in sections:
-            body.plane_side = 0
-            body.id = id
-            id += 1
+        if naive_clip[0].n_cells > 0 and naive_clip[1].n_cells > 0:
+            sections = naive_clip[0].split_bodies()
+            id = 0
+            for body in sections:
+                body.plane_side = 0
+                body.id = id
+                id += 1
 
-        for body in naive_clip[1].split_bodies():
-            body.plane_side = 1
-            body.id = id
-            id += 1
-            sections.append(body)
+            for body in naive_clip[1].split_bodies():
+                body.plane_side = 1
+                body.id = id
+                id += 1
+                sections.append(body)
 
-        # Get the id of the two sections nearest the origin  
-        near_side_sections = [x for x in sections if x.plane_side == 0]
-        min_distance_from_origin = [np.min(np.linalg.norm(x.points - origin, axis=1)) for x in near_side_sections]
-        root = near_side_sections[np.argmin(min_distance_from_origin)].id
+            # Get the id of the two sections nearest the origin  
+            near_side_sections = [x for x in sections if x.plane_side == 0]
+            min_distance_from_origin = [np.min(np.linalg.norm(x.points - origin, axis=1)) for x in near_side_sections]
+            root = near_side_sections[np.argmin(min_distance_from_origin)].id
 
-        far_side_sections = [x for x in sections if x.plane_side == 1]
-        min_distance_from_origin = [np.min(np.linalg.norm(x.points - origin, axis=1)) for x in far_side_sections]
-        nearest_far_side = far_side_sections[np.argmin(min_distance_from_origin)].id
+            far_side_sections = [x for x in sections if x.plane_side == 1]
+            min_distance_from_origin = [np.min(np.linalg.norm(x.points - origin, axis=1)) for x in far_side_sections]
+            nearest_far_side = far_side_sections[np.argmin(min_distance_from_origin)].id
 
-        # Test adjacency
-        adj = []
-        for idx in range(len(sections)):
-            for jdx in range(idx+1, len(sections)):
-                test = len(sections[idx].merge(sections[jdx]).split_bodies())
-                if test == 1:
-                    adj.append((idx, jdx))
+            # Test adjacency
+            adj = []
+            for idx in range(len(sections)):
+                for jdx in range(idx+1, len(sections)):
+                    test = len(sections[idx].merge(sections[jdx]).split_bodies())
+                    if test == 1:
+                        adj.append((idx, jdx))
 
-        # Create graph
-        G = nx.Graph()
-        for pair in adj:
-            G.add_edge(pair[0], pair[1])
-        
-        # Cut graph
-        G.remove_node(nearest_far_side)
-        S = [G.subgraph(c).copy() for c in nx.connected_components(G)]
-        
-        for sdx, subgraph in enumerate(S):
-            if root in subgraph.nodes:
-                near_side = sdx
-        
-        # Prep id lists for merging 
-        near_side_ids = list(S[near_side].nodes)
-        far_side_ids = [nearest_far_side]
-
-        if len(S) > 1:
-            # far_side = 1 - sdx
-            far_side_ids += list(S[1 - near_side].nodes) 
-
-        near_side = [x for x in sections[near_side_ids]]
-        far_side = [x for x in sections[far_side_ids]]
-
-        if len(near_side) > 1:
-            near_side = near_side[0].merge(near_side[1:])
-        else:
-            near_side = near_side[0]
-
-        if len(far_side) > 1:
-            far_side = far_side[0].merge(far_side[1:])
-        else:
-            far_side = far_side[0]
+            # Create graph
+            G = nx.Graph()
+            for pair in adj:
+                G.add_edge(pair[0], pair[1])
             
-        near_side.point_arrays['Side'] = np.zeros(near_side.n_points)
-        far_side.point_arrays['Side'] = np.ones(far_side.n_points)
-        split = near_side.merge(far_side)
+            # Cut graph
+            G.remove_node(nearest_far_side)
+            S = [G.subgraph(c).copy() for c in nx.connected_components(G)]
+            
+            for sdx, subgraph in enumerate(S):
+                if root in subgraph.nodes:
+                    near_side = sdx
+            
+            # Prep id lists for merging 
+            near_side_ids = list(S[near_side].nodes)
+            far_side_ids = [[nearest_far_side]]
 
-        # Interpolate back onto original mesh
-        tree = KDTree(split.points)
-        ndx = tree.query(mesh.points)[1]
-        mesh.point_arrays['Side'] = split.point_arrays['Side'][ndx]
+            if len(S) > 1:
+                # far_side = 1 - sdx
+                far_side_ids += [list(S[sdx].nodes) for sdx in range(len(S)) if sdx != near_side]# list(S[1 - near_side].nodes) 
+
+            far_side_ids = [item for sublist in far_side_ids for item in sublist]
+
+            near_side = [x for x in sections[near_side_ids]]
+            far_side = [x for x in sections[far_side_ids]]
+
+            if len(near_side) > 1:
+                near_side = near_side[0].merge(near_side[1:])
+            else:
+                near_side = near_side[0]
+
+            if len(far_side) > 1:
+                far_side = far_side[0].merge(far_side[1:])
+            else:
+                far_side = far_side[0]
+                
+            near_side.point_arrays['Side'] = np.zeros(near_side.n_points)
+            far_side.point_arrays['Side'] = np.ones(far_side.n_points)
+            split = near_side.merge(far_side)
+
+            # Interpolate back onto original mesh
+            tree = KDTree(split.points)
+            ndx = tree.query(mesh.points)[1]
+            mesh.point_arrays['Side'] = split.point_arrays['Side'][ndx]
+
+        else:
+            if naive_clip[0].n_cells > 0:
+                mesh.point_arrays['Side'] = np.zeros(mesh.n_points)
+            elif naive_clip[1].n_cells > 0:
+                mesh.point_arrays['Side'] = np.ones(mesh.n_points)
 
         self.clipped = mesh
 
@@ -145,15 +154,15 @@ class TubeClipper():
         else:
             self.p.add_mesh(self.surf, name='mesh', color='white', opacity=0.1)
 
-        if near.n_points < 1:
+        if far.n_points < 1:
             self.p.remove_actor('clip')
         else:
-            self.p.add_mesh(near, name='clip', color='green') 
+            self.p.add_mesh(far, name='clip', color='green') 
 
-        if far.n_points < 1:
+        if near.n_points < 1:
             self.p.remove_actor('inv')
         else:
-            self.p.add_mesh(far, name='inv', color='red', opacity=0.2) 
+            self.p.add_mesh(near, name='inv', color='red', opacity=1.0) 
 
 
     def interact(self, use_mesh=True):
@@ -163,7 +172,7 @@ class TubeClipper():
 
         self.p = pv.Plotter()
         self.p.add_text('Press space to update')
-        self.p.add_mesh(self.surf, name='surf', color='white')
+        self.p.add_mesh(self.surf, name='mesh', color='white')
         self.p.add_plane_widget(self._plane_clipping_cb)
         self.p.add_key_event(
             key='space',
