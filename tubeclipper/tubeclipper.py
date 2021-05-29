@@ -13,8 +13,12 @@ class TubeClipper():
     def __init__(self, mesh):
         self.mesh = mesh 
         self.surf = self.mesh.extract_surface()
-        
-    def clip(self, origin, normal, use_mesh=False):
+
+        self.clipped = self.mesh.copy()
+        self.clipped.point_arrays['Side'] = np.ones(self.mesh.n_points, dtype=bool)
+        # self.surf.point_arrays['Side'] = np.zeros(self.surf.n_points)
+
+    def clip(self, origin, normal):
         """ Clip mesh given origin and normal.
 
         Args:
@@ -25,11 +29,7 @@ class TubeClipper():
         
         Clipped mesh is stored as attribute self.clipped.
         """
-        if use_mesh == True:
-            mesh = self.mesh 
-        else:
-            mesh = self.surf
-
+        mesh = self.mesh
         naive_clip = mesh.clip(normal, origin, return_clipped=True)
         
         if naive_clip[0].n_cells > 0 and naive_clip[1].n_cells > 0:
@@ -99,22 +99,29 @@ class TubeClipper():
             else:
                 far_side = far_side[0]
                 
-            near_side.point_arrays['Side'] = np.zeros(near_side.n_points)
-            far_side.point_arrays['Side'] = np.ones(far_side.n_points)
+            near_side.point_arrays['Side'] = np.zeros(near_side.n_points, dtype=bool)
+            far_side.point_arrays['Side'] = np.ones(far_side.n_points, dtype=bool)
             split = near_side.merge(far_side)
-
+          
             # Interpolate back onto original mesh
             tree = KDTree(split.points)
-            ndx = tree.query(mesh.points)[1]
-            mesh.point_arrays['Side'] = split.point_arrays['Side'][ndx]
+            ndx = tree.query(mesh.points, 1)[1]
+            side_array = split.point_arrays['Side'][ndx]
 
         else:
             if naive_clip[0].n_cells > 0:
-                mesh.point_arrays['Side'] = np.zeros(mesh.n_points)
+                side_array = np.zeros(mesh.n_points, dtype=bool)
             elif naive_clip[1].n_cells > 0:
-                mesh.point_arrays['Side'] = np.ones(mesh.n_points)
+                side_array = np.ones(mesh.n_points, dtype=bool)
 
-        self.clipped = mesh
+        print('side', len(side_array))
+        self.clipped.point_arrays['Side'] = np.logical_and(
+            self.clipped.point_arrays['Side'], 
+            side_array,
+            )
+
+
+        return self
 
     def _plane_clipping_cb(self, normal, origin):
         """ Callback for interactive method.
@@ -143,7 +150,8 @@ class TubeClipper():
     def _update(self):
         """ Callback for interactive method.
         """
-        self.clip(self.origin, self.normal, self.use_mesh)
+        self.clipped.point_arrays['Side'] = np.ones(self.clipped.n_points, dtype=bool)
+        self.clip(self.origin, self.normal)
 
         near_mask = self.clipped.point_arrays['Side'] == 0
         near = self.clipped.extract_points(near_mask)
@@ -165,11 +173,9 @@ class TubeClipper():
             self.p.add_mesh(near, name='inv', color='red', opacity=1.0) 
 
 
-    def interact(self, use_mesh=True):
+    def interact(self):
         """ Interactively choose a normal and origin.
         """
-        self.use_mesh = use_mesh
-
         self.p = pv.Plotter()
         self.p.add_text('Press space to update')
         self.p.add_mesh(self.surf, name='mesh', color='white')
@@ -181,7 +187,7 @@ class TubeClipper():
         self.p.show()
         print('Origin:', self.origin)
         print('Normal:', self.normal)
-
+        
 
 if __name__ == "__main__":
     print('See examples directory.')
