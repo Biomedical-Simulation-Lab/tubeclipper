@@ -114,7 +114,6 @@ class TubeClipper():
             elif naive_clip[1].n_cells > 0:
                 side_array = np.ones(mesh.n_points, dtype=bool)
 
-        print('side', len(side_array))
         self.clipped.point_arrays['Side'] = np.logical_and(
             self.clipped.point_arrays['Side'], 
             side_array,
