@@ -16,7 +16,6 @@ class TubeClipper():
 
         self.clipped = self.mesh.copy()
         self.clipped.point_arrays['Side'] = np.ones(self.mesh.n_points, dtype=bool)
-        # self.surf.point_arrays['Side'] = np.zeros(self.surf.n_points)
 
     def clip(self, origin, normal):
         """ Clip mesh given origin and normal.
@@ -169,7 +168,7 @@ class TubeClipper():
         if near.n_points < 1:
             self.p.remove_actor('inv')
         else:
-            self.p.add_mesh(near, name='inv', color='red', opacity=1.0) 
+            self.p.add_mesh(near, name='inv', color='red', opacity=0.1) 
 
 
     def interact(self):
