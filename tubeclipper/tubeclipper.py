@@ -80,8 +80,7 @@ class TubeClipper():
             far_side_ids = [[nearest_far_side]]
 
             if len(S) > 1:
-                # far_side = 1 - sdx
-                far_side_ids += [list(S[sdx].nodes) for sdx in range(len(S)) if sdx != near_side]# list(S[1 - near_side].nodes) 
+                far_side_ids += [list(S[sdx].nodes) for sdx in range(len(S)) if sdx != near_side]
 
             far_side_ids = [item for sublist in far_side_ids for item in sublist]
 
@@ -100,12 +99,22 @@ class TubeClipper():
                 
             near_side.point_arrays['Side'] = np.zeros(near_side.n_points, dtype=bool)
             far_side.point_arrays['Side'] = np.ones(far_side.n_points, dtype=bool)
-            split = near_side.merge(far_side)
+            # split = near_side.merge(far_side)
+
+            near_side = near_side.extract_largest()
+            far_side = far_side.extract_largest()
           
+            all_points = np.concatenate([near_side.points, far_side.points], axis=0)
+            side_arr = np.concatenate([
+                np.zeros(near_side.n_points, dtype=bool),
+                np.ones(far_side.n_points, dtype=bool),
+                ],
+                axis=0)
+            
             # Interpolate back onto original mesh
-            tree = KDTree(split.points)
+            tree = KDTree(all_points) #split.points
             ndx = tree.query(mesh.points, 1)[1]
-            side_array = split.point_arrays['Side'][ndx]
+            side_array = side_arr[ndx] #split.point_arrays['Side'][ndx]
 
         else:
             if naive_clip[0].n_cells > 0:
