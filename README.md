@@ -1,14 +1,14 @@
 # tubeclipper
 
-Clips tube structures while avoiding undesired cuts.
+Clips a mesh based on local connectivity.
 
-See examples for usage.
+`tubeclipper` is for clipping a mesh while avoiding undesired cuts. Say we wanted to clip the dragon below, but only at its midsection -- clipping with a plane will cut through the head and other body sections. Instead, `tubeclipper` marks the mesh based on connectivity relative to the clipping point, as in the image below.
 
-Naive clip with origin and normal:
-![Naive clip with origin and normal](https://github.com/Biomedical-Simulation-Lab/tubeclipper/blob/master/imgs/before.png)
+Clipping with a plane:
+![Before](https://github.com/Biomedical-Simulation-Lab/tubeclipper/blob/master/imgs/before.jpg)
 
-TubeClipper clip with origin and normal:
-![TubeClipper with origin and normal](https://github.com/Biomedical-Simulation-Lab/tubeclipper/blob/master/imgs/after.png)
+Clipping with `tubeclipper`:
+![After](https://github.com/Biomedical-Simulation-Lab/tubeclipper/blob/master/imgs/after.jpg)
 
 Requirements:
 - numpy 
