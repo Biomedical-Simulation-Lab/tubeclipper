@@ -18,7 +18,7 @@ if __name__ == "__main__":
     normal = np.array([0.48, 0.87, -0.085])
 
     t = TubeClipper(mesh)
-    t.clip(origin, normal)
+    t.clip(origin, -normal)
 
     cpos = [(-0.0069, 0.070, -0.39),
             (-0.0091, 0.12, -0.0038),
@@ -29,3 +29,5 @@ if __name__ == "__main__":
     p.add_mesh(t.clipped, scalars='Side')
     p.set_focus(t.clipped.outline().center)
     p.show()
+
+

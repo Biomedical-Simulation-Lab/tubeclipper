@@ -15,3 +15,6 @@ Requirements:
 - pyvista 
 - scipy 
 - networkx 
+
+## Notes
+Recent (16 11 21) changes probably broke the ability to clip volumes (unstructured grids) because I join and clean the "non-jagged" mesh sections as polydata. Consider checking type in future if not working as expected.

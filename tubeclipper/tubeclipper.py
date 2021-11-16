@@ -84,26 +84,47 @@ class TubeClipper():
 
             far_side_ids = [item for sublist in far_side_ids for item in sublist]
 
+            # near_side = pv.MultiBlock([x for x in sections[near_side_ids]])
+            # far_side = pv.MultiBlock([x for x in sections[far_side_ids]])
             near_side = [x for x in sections[near_side_ids]]
             far_side = [x for x in sections[far_side_ids]]
 
+
             if len(near_side) > 1:
                 near_side = near_side[0].merge(near_side[1:])
+                # near_side = near_side.combine(merge_points=True, tolerance=1e-5)
             else:
                 near_side = near_side[0]
 
             if len(far_side) > 1:
                 far_side = far_side[0].merge(far_side[1:])
+                # far_side = far_side.combine(merge_points=True, tolerance=1e-5)
             else:
                 far_side = far_side[0]
                 
+            near_side = pv.PolyData(near_side.points, near_side.cells)
+            far_side = pv.PolyData(far_side.points, far_side.cells)
+            
+            near_side = near_side.clean()
+            far_side = far_side.clean()
+
             near_side.point_arrays['Side'] = np.zeros(near_side.n_points, dtype=bool)
             far_side.point_arrays['Side'] = np.ones(far_side.n_points, dtype=bool)
-            # split = near_side.merge(far_side)
+            
+            tree = KDTree(mesh.points) #split.points
+            ndx = tree.query(near_side.points, 1)[1]
+            fdx = tree.query(far_side.points, 1)[1]
 
-            near_side = near_side.extract_largest()
-            far_side = far_side.extract_largest()
+            for arr in mesh.point_arrays:
+                near_side.point_arrays[arr] = mesh.point_arrays[arr][ndx]
+                far_side.point_arrays[arr] = mesh.point_arrays[arr][fdx]
+                
+            # near_side = near_side.extract_largest()
+            # far_side = far_side.extract_largest()
           
+            self.near_side = near_side
+            self.far_side = far_side
+
             all_points = np.concatenate([near_side.points, far_side.points], axis=0)
             side_arr = np.concatenate([
                 np.zeros(near_side.n_points, dtype=bool),
