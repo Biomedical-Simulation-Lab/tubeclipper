@@ -29,9 +29,13 @@ class TubeClipper():
         Clipped mesh is stored as attribute self.clipped.
         """
         mesh = self.mesh
+
         naive_clip = mesh.clip(normal, origin, return_clipped=True)
         
         if naive_clip[0].n_cells > 0 and naive_clip[1].n_cells > 0:
+            naive_clip = [naive_clip[idx].clean(tolerance=1e-4) for idx in [0,1]]
+            naive_clip = [pv.PolyData(x.points, x.faces) for x in naive_clip]
+            
             sections = naive_clip[0].split_bodies()
             id = 0
             for body in sections:
@@ -105,8 +109,8 @@ class TubeClipper():
             near_side = pv.PolyData(near_side.points, near_side.cells)
             far_side = pv.PolyData(far_side.points, far_side.cells)
             
-            near_side = near_side.clean()
-            far_side = far_side.clean()
+            near_side = near_side.clean(tolerance=1e-4)
+            far_side = far_side.clean(tolerance=1e-4)
 
             near_side.point_arrays['Side'] = np.zeros(near_side.n_points, dtype=bool)
             far_side.point_arrays['Side'] = np.ones(far_side.n_points, dtype=bool)
@@ -142,6 +146,13 @@ class TubeClipper():
                 side_array = np.zeros(mesh.n_points, dtype=bool)
             elif naive_clip[1].n_cells > 0:
                 side_array = np.ones(mesh.n_points, dtype=bool)
+            self.far_side = naive_clip[1]
+            self.near_side = naive_clip[0]
+
+            if self.far_side.n_points > 1:
+                self.far_side = self.far_side.clean(tolerance=1e-4)
+            if self.near_side.n_points > 1:
+                self.near_side = self.near_side.clean(tolerance=1e-4)
 
         self.clipped.point_arrays['Side'] = np.logical_and(
             self.clipped.point_arrays['Side'], 
