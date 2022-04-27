@@ -108,9 +108,10 @@ class TubeClipper():
                 
             near_side = pv.PolyData(near_side.points, near_side.cells)
             far_side = pv.PolyData(far_side.points, far_side.cells)
-            
-            near_side = near_side.clean(tolerance=1e-4)
-            far_side = far_side.clean(tolerance=1e-4)
+            print('near', near_side.n_points)
+            print('far', far_side.n_points)
+            near_side = near_side.clean(tolerance=1e-5)
+            far_side = far_side.clean(tolerance=1e-5)
 
             near_side.point_arrays['Side'] = np.zeros(near_side.n_points, dtype=bool)
             far_side.point_arrays['Side'] = np.ones(far_side.n_points, dtype=bool)
